@@ -14,6 +14,9 @@ var echo = function (tag) {
   broadcastMessage(tag);
 
   Mousetrap.echo(echo, 'enter');
+
+  // prevent ghost keypress on next echo
+  return false;
 };
 
 Mousetrap.echo(echo, 'enter');

@@ -15,16 +15,18 @@ var broadcastMessage = function (tag) {
   var obj = {};
   obj[tag] = transform(tags[tag]);
 
-  io.sockets.emit('tag', obj);
+  io.sockets.send(obj);
 };
 
-io.sockets.on('tag', function (tag, callback) {
-  console.log(tag);
+io.sockets.on('connection', function (socket) {
+  socket.on('tag', function (tag, callback) {
+    console.log(tag);
 
-  tags[tag] = tags[tag] || 0;
-  tags[tag] += 1;
+    tags[tag] = tags[tag] || 0;
+    tags[tag] += 1;
 
-  broadcastMessage(tag);
+    broadcastMessage(tag);
+  });
 });
 
 // utilities

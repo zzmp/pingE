@@ -57,6 +57,13 @@
     var _recordString = [];
 
     /**
+     * characters that should not propogate
+     *
+     * @type {Object}
+     */
+    var _nonpropogatedKeys = {};
+
+    /**
      * original handleKey method, overriden by Mousetrap.echo
      *
      * @type {Function}
@@ -174,9 +181,10 @@
      * prevents default/stops propogation if callback returns false
      *
      * @type {Function} callback
+     * @type {Event} e
      * @returns void
      */
-    var _fireCallback = function (callback) {
+    var _fireCallback = function (callback, e) {
         Mousetrap.handleKey = _superHandleKey;
         if ( callback(_recordString.join(''), _record) === false ) {
             _preventDefault(e);
@@ -253,7 +261,7 @@
     var _handleKey = function (character, modifiers, e) {
         if (_breakers[character] === e.type || 
             _breakers[_modifyCharacter(character, modifiers)] === e.type ) {
-            _fireCallback(_callback);
+            _fireCallback(_callback, e);
             return;
         }
 
@@ -272,6 +280,12 @@
         }
 
         _recordKey(character, modifiers);
+    
+        // prevent default events/propogation of event
+        if (_nonpropogatedKeys[character]) {
+        	_preventDefault(e);
+        	_stopPropogation(e);
+        }
     };
 
     /**
@@ -280,17 +294,26 @@
      * callback takes two arguments:
      * a plaintext record of keys, and an object of keys
      *
+     * nonpropogatedKeys denotes keys which should not trigger their default action or bubble up an event
+     *
      * @param {Function} callback
      * @param {string} breaker
      * @param {string} action
+     * @param {Object} nonpropogatedKeys
      * @returns void
      */
-    Mousetrap.echo = function (callback, breaker, action) {
+    Mousetrap.echo = function (callback, breaker, action, nonpropogatedKeys) {
         _ignoreNextKeypress = false;
         _record = [];
         _recordString = [];
         _callback = callback;
         _breakers = _parseBreakers(breaker, action);
+	_nonpropogatedKeys = nonpropogatedKeys || {
+	    'backspace': true,
+	    'tab': true,
+	    'space': true,
+	    'enter': true
+	};
         Mousetrap.handleKey = _handleKey;
     };
 
