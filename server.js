@@ -10,9 +10,25 @@ function handler (req, res) {
 }
 
 // beatific sockets handler
-io.sockets.on('connection', function (socket) {
-  socket.emit('news', {hello: 'world' });
-  socket.on('my other event', function (data) {
-    console.log(data);
-  });
+var tags = {};
+var broadcastMessage = function (tag) {
+  var obj = {};
+  obj[tag] = transform(tags[tag]);
+
+  io.sockets.emit('tag', obj);
+};
+
+io.sockets.on('tag', function (tag, callback) {
+  console.log(tag);
+
+  tags[tag] = tags[tag] || 0;
+  tags[tag] += 1;
+
+  broadcastMessage(tag);
 });
+
+// utilities
+var transform = function (number) {
+  // a 'never-ending' growth
+  return 1 - Math.pow(Math.E, -number);
+};
