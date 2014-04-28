@@ -1,6 +1,11 @@
-var app = require('http').createServer(handler)
-  , io = require('socket.io').listen(app)
-  , router = require('./modules/server/shittyRouter.js').init(__dirname);
+var app = require('http').createServer(handler);
+var io = require('socket.io').listen(app);
+var router = require('./modules/server/shittyRouter.js')
+  .init(__dirname);
+var keyTrie = require('./modules/server/keyTrie.js');
+var roomMap = {};
+
+var messages = {};
 
 app.listen(5000);
 
@@ -10,27 +15,71 @@ function handler (req, res) {
 }
 
 // beatific sockets handler
-var tags = {};
-var broadcastMessage = function (tag) {
-  var obj = {};
-  obj[tag] = transform(tags[tag]);
-
-  io.sockets.send(obj);
-};
-
 io.sockets.on('connection', function (socket) {
-  socket.on('tag', function (tag, callback) {
-    console.log(tag);
+  messages.intro.call(socket);
 
-    tags[tag] = tags[tag] || 0;
-    tags[tag] += 1;
+  socket.on('match', function (data) {
+    messages.match.call(socket, data);
+  });
 
-    broadcastMessage(tag);
+  socket.on('choose', function (data) {
+    messages.unchoose.call(socket);
+    messages.choose.call(socket, data);
+  });
+
+  socket.on('unchoose', function (data) {
+    messages.unchoose.call(socket);
+  });
+
+  socket.on('disconnect', function (data) {
+    messages.unchoose.call(socket);
+  });
+
+  socket.on('dashboard', function (data) {
+    messages.dashboard.call(socket, data);
   });
 });
 
-// utilities
-var transform = function (number) {
-  // a 'never-ending' growth
-  return 1 - Math.pow(Math.E, -number);
+messages.intro = function () {
+  this.emit('intro', {
+    intro:
+      '          ()               \n' +
+      '    ____ ___ ___ ____ ____ \n' +
+      '   / o  / / __  / o  /__o_/\n' +
+      '  / ___/_/_/ /_/__  /____\\\n' +
+      ' / /             / /       \n' +
+      '/_/             /_/        \n'
+  });
+};
+
+messages.match = function (data) {
+  var matches = keyTrie.match(data.text);
+  
+  this.emit('match', matches);
+
+  this.emit('log', {log: matches});
+};
+
+messages.choose = function (data) {
+  var room = keyTrie.add(data.text);
+
+  this.join(room);
+  roomMap[this.id] = room;
+
+  this.emit('log', {log: 'joined room ' + room});
+};
+
+messages.unchoose = function () {
+  var room = roomMap[this.id];
+  if (!room) return;
+
+  this.leave(room);
+  keyTrie.remove(room);
+
+  delete roomMap[this.id];
+
+  this.emit('log', {log:'left room ' + room});
+};
+
+messages.dashboard = function () {
 };

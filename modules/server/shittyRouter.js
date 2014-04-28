@@ -1,7 +1,7 @@
   var fs = module.require('fs');
 
-  var complaint = 'It doesn\'t seem to be working.'
-              + '\nI would complain to that guy ->';
+  var complaint = 'It doesn\'t seem to be working.' +
+                '\nI would complain to that guy ->';
   
   var root = '/';
 
@@ -43,31 +43,36 @@
   };
 
   shittyRouter.setFolder = function (folder, type) {
-    type = type || this; // chaining
-    if (!type) return;
+    if (!type) return false;
     folders.type = folder;
-    return type;
+    return this;
   };
 
   shittyRouter.setContent = function (content, type) {
-    type = type || this; // chaining
-    if (!type) return;
+    if (!type) return false;
     folders.content = content;
-    return type;
+    return this;
   };
 
   shittyRouter.route = function (req, res) {
+    var getExt = function (url) {
+      var ext = url.substr(url.lastIndexOf('.') + 1);
+      type =  contents[ext] ? contents[ext] : contents['def'];
+    }
+
+    var folder;
+    var type;
+
     if (req.url === '/') req.url = indexPath;
 
-    if (indexPath !== '/') { // allow index.html at root
-      var folder = req.url.indexOf('/', 1) === -1
-                   ? 'def'
-	       	   : req.url.substring(1, req.url.indexOf('/', 1));
+    if (indexPath !== '/') { // expect uniform folder contents
+      folder = req.url.indexOf('/', 1) === -1 ?
+	getExt(req.url) :
+	req.url.substring(1, req.url.indexOf('/', 1));
     } else folder = 'html';
-    var type = contents[folders[folder]];
-   
-    console.log(root + req.url);
 
+    type = type || contents[folders[folder]];
+   
     fs.readFile(root + req.url,
       function (err, data) {
         if (err) {
